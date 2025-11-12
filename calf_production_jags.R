@@ -16,7 +16,7 @@ source("GrayWhaleCalfProduction_fcns.R")
 
 save.file <- F
 data.ext <- "v3" # "v2"  # or v2
-model <- "v1"
+model <- "v1a" # "v1"
 
 #FILES <- list.files(pattern = ".csv$")
 #
@@ -45,7 +45,6 @@ jags.params <- c("count.true",
                  "p.obs.corr",
                  "p.obs",
                  "Total.Calves",
-                 "S1", "S2", "P", "K", "Max",
                  "loglik")
 
 # get data
@@ -60,7 +59,9 @@ for(i in 1:length(FILES)){
     
   }
   
-  out.file.name <- paste0("RData/calf_estimates_", data.ext, "_M", model, "_", years[i], ".rds") 
+  out.file.name <- paste0("RData/calf_estimates_", data.ext,
+                          "_M", model, "_", years[i], ".rds") 
+  
   if (file.exists(out.file.name)){
     jm.out[[i]] <- readRDS(out.file.name)
     
@@ -96,7 +97,12 @@ for(i in 1:length(FILES)){
                DIC = T, parallel=T)
     
     # This function is in GrayWhaleCalfProduction_fcns.R
-    jm.MCMC <- MCMC.diag(jm = jm, MCMC.params = MCMC.params)
+    # params.to.monitor is a string of regular expression.
+    # e.g., "^BF\\.Fixed|^K\\["
+    params <- "^count\\.true\\[|^lambda\\[|^p\\.obs\\.corr\\[|^p\\.obs|^Total\\.Calves\\["
+    jm.MCMC <- MCMC.diag(jm = jm, 
+                         MCMC.params = MCMC.params,
+                         params.to.monitor = params)
     
     jm.out[[i]] <- list(jm = jm,
                         MCMC.diag = jm.MCMC,
