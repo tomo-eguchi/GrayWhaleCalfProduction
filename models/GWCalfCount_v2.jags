@@ -1,0 +1,36 @@
+# in this version (v2), I add years into the model
+# Strangely, the Total.Calves tally increase as the number of 
+# datasets increases... running n.years = 1 has the lowest
+# total counts. As n.years increases, the numbers increase for 
+# all years. I can't figure out what is going on here because
+# the years are independent of each other, as far as I can tell
+# in this model.
+
+# Decided to use v1 for each dataset. I have to get
+# to the bottom of this. 2022-05-04
+
+    model {
+      p.obs ~ dnorm(0.889,0.06375^-2) #estimated observation probability
+
+      for (y in 1:n.years){
+        for(j in 1:n.weeks[y]){
+          lambda[y,j] ~ dunif(0,40) # dgamma(2, 0.15) 
+        } #j
+      
+        for(i in 1:n.obs[y]){
+          count.true[y,i] ~ dpois(lambda[y, week[y,i]])
+
+          # watch period is 3 hours, so any amount of effort 
+          # below 3 hours scales the observation probability accordingly:      
+          p.obs.corr[y,i] <- p.obs * effort[y,i]/3
+        
+          count.obs[y,i] ~ dbin(p.obs.corr[y, i], count.true[y, i])
+          loglik[y,i] <- logdensity.bin(count.obs[y,i], p.obs.corr[y,i], count.true[y,i])
+        }#i
+
+        Total.Calves[y] <- sum(count.true[y, 1:n.obs[y]])
+
+      }#y
+      
+    }#model
+    
