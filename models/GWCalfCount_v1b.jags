@@ -1,0 +1,57 @@
+# This v1b model uses the total abundance to be discounted by the effort effort[i]/3
+# rather than p.obs, which was the original model by Josh Stewart (v1)
+# It uses ZIP. The code is from Gemini. 
+
+model {
+  # --- Priors ---
+  
+  p.obs ~ dnorm(0.889, 0.06375^-2)T(0,) # estimated observation probability
+  
+  # NEW: Prior for the zero-inflation probability
+  # psi = probability of a "structural zero" (true count is guaranteed to be 0)
+  psi ~ dunif(0, 1) 
+
+  for(j in 1:n.weeks){
+    # Prior for the mean of the Poisson component
+    lambda[j] ~ dunif(0, 100)
+  }
+
+  # --- Likelihood ---
+  for(i in 1:n.obs){
+    
+    # === 1. ZERO-INFLATED POISSON (ZIP) PROCESS for TRUE count ===
+    
+    # NEW: Latent variable: z[i] = 1 if structural zero, 0 if from Poisson process
+    z[i] ~ dbern(psi) 
+    
+    # NEW: Effective Poisson mean
+    # If z[i]=1 (structural zero), lambda.eff = 0 --> count.true will be 0
+    # If z[i]=0 (Poisson process), lambda.eff = lambda[week[i]]
+    lambda.eff[i] <- (1 - z[i]) * lambda[week[i]]
+    
+    # MODIFIED: True count (latent state) now drawn from the effective mean
+    count.true[i] ~ dpois(lambda.eff[i])    
+    
+    # === 2. OBSERVATION PROCESS (Binomial) ===
+    # This part remains the same as your original model
+    
+    # watch period is 3 hours, so any amount of effort below 
+    # 3 hours scales the true count accordingly
+    count.corr[i] <- round(count.true[i] * effort[i]/3)
+    
+    # Observed count is a binomial draw from the corrected true count
+    count.obs[i] ~ dbin(p.obs, count.corr[i])
+    
+    # Log-likelihood for model comparison (e.g., DIC)
+    # This line does not need to change
+    loglik[i] <- logdensity.bin(count.obs[i], p.obs, count.corr[i])
+    
+  }#i
+
+  # --- Derived Quantities ---
+  # This line does not need to change
+  Total.Calves <- sum(count.true[1:n.obs])
+
+}
+
+

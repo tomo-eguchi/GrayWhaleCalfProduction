@@ -16,11 +16,7 @@ source("GrayWhaleCalfProduction_fcns.R")
 
 save.file <- F
 data.ext <- "v3" # "v2"  # or v2
-<<<<<<< HEAD
-model <- "v1" #"ZIP_v1" # "v1" #
-=======
-model <- "v1a" # "v1"
->>>>>>> 966eff6759526b7a68f9241a068d4b67d7b30e53
+model <-"v1b" #"v8" #  "v1a"
 
 #FILES <- list.files(pattern = ".csv$")
 #
@@ -35,6 +31,7 @@ if (data.ext == "v1"){
                       pattern = paste0("Formatted_inshore_", data.ext, ".csv"))
   
 }
+
 
 MCMC.params <- list(n.samples = 100000,
                     n.thin = 100,
@@ -89,9 +86,16 @@ for(i in 1:length(FILES)){
                         unlist() %>% 
                         unname())
     
+
+    if (model == "v1b"){
+      inits <- function() {list(z = rep(0, jags.data$n.obs) )}
+    } else {
+      inits <- NULL
+    }
+    
     
     jm <- jags(jags.data,
-               inits = NULL,
+               inits = inits,
                parameters.to.save= jags.params,
                paste0("models/GWCalfCount_", model, ".jags"), 
                n.chains = MCMC.params$n.chains,

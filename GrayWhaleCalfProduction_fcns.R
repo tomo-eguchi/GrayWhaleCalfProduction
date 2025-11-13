@@ -1352,7 +1352,8 @@ list.sheet.names.inshore <- list(Y1994 = "INSHORE LOG", Y1995 = "Inshore Data", 
                                  Y2018 = "LOGS", Y2019 = "INSHORE LOGS", Y2021 = "INSHORE LOGS",
                                  Y2022 = "MomCalf Logs 2022 postQC",
                                  Y2023 = "PiedrasBlancasCalfProductionDat",
-                                 Y2024 = "MOTHER-CALF LOG 2024")
+                                 Y2024 = "MOTHER-CALF LOG 2024",
+                                 Y2025 = "MOTHER-CALF LOG 2025")
 
 # Sheet names for offshore logs. Starting 2017, offshore logs were eliminated.
 list.sheet.names.offshore <- list(Y1994 = NULL, Y1995 = "Offshore Data", Y1996 = "Sheet1",
@@ -1482,7 +1483,9 @@ list.col.types.inshore <- list(Y1994 = c("date", "numeric", "text", "numeric", "
                                Y2024 = c("date", "numeric", "numeric", "text", "numeric",
                                          "numeric", "numeric","numeric", "numeric", "numeric", 
                                          "numeric", "text", "text", "text", "text", "numeric", 
-                                         "text", "text", "text", "text"))
+                                         "text", "text", "text", "text"),
+                               Y2025 = c("date", "numeric", "text", "numeric", "numeric",
+                                         "numeric", "numeric", "text", "numeric", "numeric", "text"))
 
 # Column types for offshore logs. Some years contain more columns (typically one) with
 # no identifier, which return "New Name" when the file is read. No offshore files starting
@@ -1593,16 +1596,29 @@ list.col.names.inshore <- list(Y1994 = c("Date", "Event", "Time", "Obs. Code", "
                                Y2011 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C"),
                                Y2012 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C"),
                                Y2013 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C"),
-                               Y2014 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", "IN/OFF"),
-                               Y2015 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", "IN/OFF"),
-                               Y2016 =  c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", "IN/OFF"),
-                               Y2017 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", "IN/OFF"),
-                               Y2018 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", "IN/OFF"),
-                               Y2019 = c("DATE",	"EVENT", 	"TIME",	"OBS #", "VIS IN",	"SEA ST",	"C/C", "IN/OFF"),
-                               Y2021 = c("DATE",	"EVENT", 	"TIME",	"OBS #", "VIS IN",	"SEA ST",	"C/C", "IN/OFF"),
-                               Y2022 = c("DATE", 	"EVENT", 	"TIME",	"OBS #", "VIS IN", "SEA ST", "M/C", "LOCATION (IN/OFF)"),
-                               Y2023 = c("DATE", "EVENT", "TIME", "OBS #", "SEA ST", "VIS IN", "M/C", "LOCATION (IN/OFF)"),
-                               Y2024 = c("DATE", "EVENT", "TIME", "OBS #", "SEA STATE INSHORE", "VIS INSHORE IN", "M/C", "LOCATION (IN/OFF)"))
+                               Y2014 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", 
+                                         "IN/OFF"),
+                               Y2015 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", 
+                                         "IN/OFF"),
+                               Y2016 =  c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", 
+                                          "IN/OFF"),
+                               Y2017 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", 
+                                         "IN/OFF"),
+                               Y2018 = c("DATE",	"EVENT", 	"TIME",	"OBS#", "VIS IN",	"SEA ST",	"C/C", 
+                                         "IN/OFF"),
+                               Y2019 = c("DATE",	"EVENT", 	"TIME",	"OBS #", "VIS IN",	"SEA ST",	"C/C", 
+                                         "IN/OFF"),
+                               Y2021 = c("DATE",	"EVENT", 	"TIME",	"OBS #", "VIS IN",	"SEA ST",	"C/C",
+                                         "IN/OFF"),
+                               Y2022 = c("DATE", 	"EVENT", 	"TIME",	"OBS #", "VIS IN", "SEA ST", "M/C",
+                                         "LOCATION (IN/OFF)"),
+                               Y2023 = c("DATE", "EVENT", "TIME", "OBS #", "SEA ST", "VIS IN", "M/C",
+                                         "LOCATION (IN/OFF)"),
+                               Y2024 = c("DATE", "EVENT", "TIME", "OBS #", "SEA STATE INSHORE", 
+                                         "VIS INSHORE IN", "M/C", "LOCATION (IN/OFF)"),
+                               Y2025 = c("Date", "Event Code", "Time", "Obs.1", "Sea State", "Vis",
+                                         "M/C", "Location (Inshore/Offshore of PB Rocks)",
+                                         "Time at Rocks", "Time Out", "Notes"))
 
 # Same for offfshore spreadsheets
 list.col.names.offshore <- list(Y1994 = c("Date", "Event", "Time", "Obs.", "Sea State",

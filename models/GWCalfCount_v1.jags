@@ -1,6 +1,6 @@
 
     model {
-      p.obs ~ dnorm(0.889,0.06375^-2) #estimated observation probability
+      p.obs ~ dnorm(0.889,0.06375^-2)T(0,) #estimated observation probability
 
       for(j in 1:n.weeks){
         lambda[j] ~ dunif(0,40)

@@ -5,6 +5,9 @@ output: html_notebook
 
 This notebook is used to extract data from original data files in the Excel format. 
 
+New run with the 2025 data: 2025-11-13
+Time columns should be defined as "text" in list.col.types.inshore.
+
 Edited for 2024. 2024-08-13
 Need to update a few constants in GrayWhaleCalfProduction_fcns.R: list.sheet.names.inshore,
 list.col.types.inshore, list.col.names.inshore.
@@ -24,10 +27,10 @@ data.dir <- "data/All data/"
 ver <- "v3"  # v2
 
 out.dir <- paste0("data/Processed data ", ver, "/")  # for revising outputs
-if (!exists(out.dir)) dir.create(out.dir)
+if (!dir.exists(out.dir)) dir.create(out.dir)
 
 out.formatted.dir <- paste0("data/Formatted Annual Data ", ver, "/")
-if (!exists(out.formatted.dir)) dir.create(out.formatted.dir)
+if (!dir.exists(out.formatted.dir)) dir.create(out.formatted.dir)
 
 # Regardless of if output file exists, this will overwrite the output files
 save.files <- TRUE
@@ -49,12 +52,12 @@ Event code:
 NEW FUNCTIONS WERE CREATED AND TESTED. THE NEXT CHUNK WILL RUN ALL YEARS. 
 
 ```{r}
-years <- c(1994:2019, 2021:2024)
+years <- c(1994:2019, 2021:2025)
 
 # file index indicates which one of "inshore" and "offshore" file should be selected. In some years
 # there were multiple files for each. No offshore files exist since 2017 so NA is in place
-inshore.xls.file.idx <- c(1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,2,2,2,1,1,1,1,1,1,1,1,1,1,1)
-offshore.xls.file.idx <- c(2,2,2,2,2,2,2,2,2,2,3,2,2,2,2,2,3,3,3,2,2,3,2,NA,NA,NA,NA,NA,NA,NA)
+inshore.xls.file.idx <- c(1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1)
+offshore.xls.file.idx <- c(2,2,2,2,2,2,2,2,2,2,3,2,2,2,2,2,3,3,3,2,2,3,2,NA,NA,NA,NA,NA,NA,NA,NA)
 
 if (length(inshore.xls.file.idx) != length(years)) stop("The length of inshore file index does not match with that of years")
 
