@@ -16,7 +16,7 @@ source("GrayWhaleCalfProduction_fcns.R")
 
 save.file <- F
 data.ext <- "v3" # "v2"  # or v2
-model <- "v1"
+model <- "v1" #"ZIP_v1" # "v1" #
 
 #FILES <- list.files(pattern = ".csv$")
 #
@@ -40,7 +40,7 @@ MCMC.params <- list(n.samples = 100000,
 n.samples <- MCMC.params$n.chains * ((MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin)
 
 jags.params <- c("count.true",
-                 "lambda",
+                 "lambda", "psi", "alpha",
                  "beta1", "beta2", "eps",
                  "p.obs.corr",
                  "p.obs",
