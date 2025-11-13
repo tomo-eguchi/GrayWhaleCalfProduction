@@ -1,0 +1,23 @@
+# this version (v5) uses Poisson likelihood, 
+# rather than binomial likelihood because
+# Pareto k values were very bad for the daily-count binomial model
+
+    model {
+      p.obs ~ dnorm(0.889,0.06375^-2) #estimated observation probability
+
+      for(j in 1:n.weeks){
+        lambda[j] ~ dunif(0,40)
+      }
+
+      for(i in 1:n.obs){
+        count.true[i] ~ dpois(lambda[week[i]])      
+        p.obs.corr[i] <- p.obs * effort[i]/3 # watch period is 3 hours, so any amount of effort below 3 hours scales the observation probability accordingly
+        
+        count.obs[i] ~ dpois(p.obs.corr[i] * count.true[i])
+        loglik[i] <- logdensity.pois(count.obs[i], p.obs.corr[i] * count.true[i])
+      }#i
+
+    Total.Calves <- sum(count.true[1:n.obs])
+
+    }#model
+    

@@ -1,0 +1,23 @@
+# This v1a model uses the total abundance to be discounted by the effort effort[i]/3
+# rather than p.obs, which was the original model by Josh Stewart (v1)
+
+    model {
+      p.obs ~ dnorm(0.889,0.06375^-2)T(0,) #estimated observation probability
+
+      for(j in 1:n.weeks){
+        lambda[j] ~ dunif(0,100)
+      }
+
+      for(i in 1:n.obs){
+        count.true[i] ~ dpois(lambda[week[i]])      
+        # watch period is 3 hours, so any amount of effort below 
+		# 3 hours scales the true count accordingly
+        count.corr[i] <- round(count.true[i] * effort[i]/3)
+        count.obs[i] ~ dbin(p.obs, count.corr[i])
+        loglik[i] <- logdensity.bin(count.obs[i], p.obs, count.corr[i])
+      }#i
+
+    Total.Calves <- sum(count.true[1:n.obs])
+
+    }#model
+    
