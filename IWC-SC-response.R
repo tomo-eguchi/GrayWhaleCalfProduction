@@ -10,7 +10,7 @@ save.fig <- F
 
 # Comparing scaling probability and scaling counts:
 prob.results <- read.csv("Data/Calf_Estimates_v3_Mv1_2025-11-13.csv")
-count.results <- read.csv("Data/Calf_Estimates_v3_Mv1a_2025-11-13.csv")
+count.results <- read.csv("Data/Calf_Estimates_v3_Mv1b_2025-11-13.csv")
 
 all.results <- rbind(prob.results, count.results)
 p.prob.count <- ggplot(all.results) +
@@ -35,7 +35,7 @@ count.results %>%
   select(Year, p.Median, c.Median, p.Mean, c.Mean,
          d.Mean, d.Median) -> d.results
   
-model <- "v1"
+model <- "v1b"
 all.years <- c(1994:2019, 2021:2025)
 all.results <- list()
 pareto.results <- list()
