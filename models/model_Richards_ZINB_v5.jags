@@ -1,0 +1,171 @@
+# JAGS model for estimating gray whale calf abundance off Piedras Blancas
+
+# This model was adapted from gray whale abudance models. 
+
+# known cyclical nature of gray whale calf counts is modeled by the function
+# provided in Girondot et al. (2007): Modeling approaches to quantify
+# leatherback nesting trends in French Guiana and Suriname. Chelonian
+# Conservation and Biology 6(1): 37-46.
+#
+# The function has the following form:
+# 
+# M1 <- (1 + (2 * exp(K) - 1) * exp((1/S1) * (P - d))) ^ (-1/exp(K))
+# M2 <- (1 + (2 * exp(K) - 1) * exp((1/S2) * (P - d))) ^ (-1/exp(K))
+# N <- min + (max - min) * (M1 * M2)
+#
+# d is the number of days from the beginning of migration season
+# S1 < 0 and S2 > 0 define the "fatness" of the function
+# K > 0 defines the "flatness" at the peak of the function
+# P defines where the peak is relatvie to the range of d min(d) < P < max(d)
+# min is "the basal level of the number of whales outside the migration season"
+# max > min
+#
+# I set min = 0. 
+#
+# This version (v5) has year spcific P, S1 and S2 parameters with hyperparameters.
+# K is shared among years.
+#
+# N is the mean number of calves passing through the study area during a 24-hr period.
+# 
+# The number of actual calves for that day (n) is a Poisson deviate:
+#
+# n ~ POI(N)
+#
+# An observed count (O) during a shift of t hrs (T) is a zero-inflated negative binomial deviate:
+#
+# O ~ ZINB(psi, n * T/24, p)
+# where psi = probability of a structual zero, which may be modeled with covariates
+# logit(psi) = XB_psi, where B_psi is a matrix of covariates, e.g., visibility, Beaufort, and observer.
+#
+# N[1,t] = N[max.day,t] = 0 for all t.
+
+model{
+
+	# Define Richards function - this is the mean of "true" daily calf abundance
+	# The realization is a Poisson deviate. 
+	for (y in 1:n.year){
+				
+		for (t in 2:(n.days-1)){
+			M1[t, y] <- (1 + (2 * exp(K) - 1) * exp((1/(-S1[y])) * (P[y] - t))) ^ (-1/exp(K))
+			M2[t, y] <- (1 + (2 * exp(K) - 1) * exp((1/S2[y]) * (P[y] - t))) ^ (-1/exp(K))
+			
+			mean.N[t, y] <- (Max[y]) * (M1[t, y] * M2[t, y]) 
+			
+			# True N is station independent and partially observed
+			# N = 0 when t = 1 or t = max.day
+			N[t, y] ~ dpois(mean.N[t,y])
+			
+		}
+	}  
+
+	# observations are from the realized abundance: 
+	START HERE. THE FOLLOWING PART SHOULD BE ZINB - 2026-01-30
+	
+	# force n = 0 for t = 1 and t = max.day
+	for (y in 1:n.year){
+		for (s in 1:n.station[y]){
+			n[1, y] ~ dbin(0, 0)
+			n[(periods[y,s]), y] ~ dbin(0,0)
+		}
+	}
+		
+	for (y in 1:n.year){
+		for (d in 2:(periods[y,s]-1)){
+			w[d, y] ~ dbern(pi[d,y])
+			
+			# observation per period d								
+			n[d, y] ~ dpois(N[d,y] * w[d,y])
+				log.lkhd[(d-1),s,y] <- logdensity.bin(n[d,s,y], obs.prob[d, s, y], N[day[d,s,y], y])
+				
+				# probability is discounted by the length of each watch period
+				obs.prob[d, s, y] <- prob[(d-1), s, y] * watch.length[(d-1), s, y]
+				# probability is mean + covariate effects
+				logit(prob[(d-1),s,y]) <- mean.prob +
+								(BF.Fixed * bf[(d-1),s,y]) +
+								(VS.Fixed * vs[(d-1),s,y]) +
+								(OBS.RF[obs[d,s,y]]) 
+
+			
+		}
+	}
+	
+	#beta.1 ~ dnorm(0, 0.001)
+	
+	# one mean.prob for the entire time series may not make sense.  
+	# Year-specific mean.prob (intercept) doesn't work so well probably because some years
+	# don't have enough data points. It becomes so small and the estimated abundance
+	# becomes large. 
+	
+	# It doesn't make sense to make it [0,1]...
+	mean.prob ~ dunif(-1.5, 3) 
+	
+	# priors for Richards function parameters. 
+	for (y in 1:n.year){
+		Max[y] ~ dnorm(2000, 1/(800^2))T(0,)
+		S1[y] ~ dgamma(S1.alpha, S1.beta)  
+		S2[y] ~ dgamma(S2.alpha, S2.beta)  
+		P[y] ~ dgamma(P.alpha, P.beta) 	
+	}
+
+	# Uniform distributions were adjusted to capture entire posterior 
+	# distributions of the hyper-parameters. 
+	
+	S1.alpha ~ dunif(0.1, 50)
+	S1.beta ~ dunif(0.01, 5)
+	
+	S2.alpha ~ dunif(0.1, 50)
+	S2.beta ~ dunif(0.01, 10)
+	
+	P.alpha ~ dunif(1, 10000)
+	P.beta ~ dunif(0.01, 250)
+	
+	K ~ dgamma(K.alpha, K.beta) 
+	
+	# K.beta <= K.alpha seems to work better with the gamma distribution for K
+	# So, I add a random number to K.beta to create K.alpha
+	K.beta ~ dunif(0, 5000)
+	K.unif ~ dunif(0, 500)
+	K.alpha <- K.beta + K.unif
+	     
+	## Observer random effects
+	for(o in 1:n.obs){
+		OBS.RF[o] ~ dnorm(0,tau.Obs)
+	}#o
+  
+	sigma.Obs ~ dunif(0, 3) #dgamma(1, 0.1)
+	tau.Obs <- pow(sigma.Obs,-2)
+     
+	## Beaufort and visibility	
+	BF.Fixed ~ dnorm(0,0.001) 
+	VS.Fixed ~ dnorm(0,0.001) 
+  
+	### Summaries, Abundance Estimates, and Other Derived Quantities 
+	for(t in 1:n.year){
+		#N is Poisson deviates so they should be integers
+		#raw.unrounded[t] <- sum(N[1:n.days,t])
+		#Raw.Est[t] <- round(raw.unrounded[t])
+		
+		Raw.Est[t] <- sum(N[1:n.days, t])
+		# multiply raw estimates by correction factor for nighttime passage rates (below)
+		Corrected.Est[t] <- Raw.Est[t] * corr.factor 
+	}#t
+  
+	# Correction factor for nighttime passage rates (Perryman et al. 1999 Marine Mammal Science):
+	corr.factor ~ dnorm(mean.corr, tau.corr)
+	mean.corr <- 1.0875
+	sd.corr <- 0.03625
+	tau.corr <- pow(sd.corr,-2)
+  		
+	 
+  # In the paper, Perryman et al. stated that "... the multiplicative correction 
+  # factor for the entire visual survey based on a 15-h nocturnal (i.e., non-survey)
+  # period would be 1 + 0.175f (SE = 0.116 * (14/24)), where f is the fraction of total
+  # whales migrating afer 15 January." So, fixing the mean to be 1.0875, it assumes that
+  # the median date of migration is Jan 15 (1 + 0.175 * 0.5 = 1.0875). This may have to
+  # be fixed to adjust for the changing median migration date. SE of 0.03625 was not found
+  # in the paper... 0.116*(14/24) = 0.0677	
+  
+  # There was a typographic error in Perryman et al. Laake et al. (2012) stated that "... a
+  # standard error of f x 15/24 x 0.116 after correcting the typographic errors in Perryman
+  # et al. (1999).
+}

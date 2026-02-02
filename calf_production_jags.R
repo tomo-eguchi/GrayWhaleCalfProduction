@@ -16,7 +16,7 @@ source("GrayWhaleCalfProduction_fcns.R")
 
 save.file <- F
 data.ext <- "v3" # "v2"  # or v2
-model <-"v1b" #"v8" #  "v1a"
+model <- "v1" # "v1b" #"v8" #  "v1a"
 
 #FILES <- list.files(pattern = ".csv$")
 #

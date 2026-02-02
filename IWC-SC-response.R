@@ -65,8 +65,8 @@ pareto.results.df <- do.call(rbind, pareto.results)
 p.pareto <- ggplot(pareto.results.df) +
   geom_point(aes(x = week, y = Pareto, color = count),
              alpha = 0.5) + 
-  geom_hline(yintercept = 0.7, color = "yellow", size = 1) +
-  geom_hline(yintercept = 1.0, color = "red", size = 1.2) +
+  geom_hline(yintercept = 0.7, color = "yellow", linewidth = 1) +
+  geom_hline(yintercept = 1.0, color = "red", linewidth = 1.2) +
   facet_wrap(~ Year)
 
 if (save.fig)
