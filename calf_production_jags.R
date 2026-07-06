@@ -124,6 +124,23 @@ for(i in 1:length(FILES)){
   
 }
 
+posterior.summary <- list()
+for (k in 1:length(jm.out)){
+  posterior.summary[[k]] <- posterior::summarize_draws(jm.out[[k]]$jm$samples) %>%
+    mutate(Year = years[k])
+}
+
+posterior.summary.df <- do.call(rbind, posterior.summary) 
+
+posterior.summary.df %>%
+  group_by(Year) %>%
+  summarise(Max.Rhat = max(rhat, na.rm = T),
+            Min.ESS.bulk = min(ess_bulk, na.rm = T),
+            Min.ESS.tail = min(ess_tail, na.rm = T)) %>%
+  mutate(n.obs = lapply(jm.out, FUN = function(x) x$jags.data$n.obs) %>% unlist(),
+         effort = lapply(jm.out, FUN = function(x) x$jags.data$effort %>% sum()) %>% unlist(),
+         n.whales = lapply(jm.out, FUN = function(x) x$jags.data$count.obs %>% sum()) %>% unlist()) -> Rhat.ESS.summary
+
 stats.total.calves <- lapply(jm.out, 
                              FUN = function(x){
   Mean <- x$jm$mean$Total.Calves
@@ -148,4 +165,29 @@ if (save.file)
             row.names = F)
 
 
+max.Rhat.list <- lapply(jm.out, FUN = function(x) x$MCMC.diag$max.Rhat)
+max.Rhat <- do.call(rbind, max.Rhat.list) %>%
+  as.data.frame() %>%
+  mutate(Year = years)
 
+# look at just 2025/2026
+dat.2025 <- data.frame(Year = 2025,
+                       week = jm.out[[31]]$jags.data$week,
+                       n.obs = jm.out[[31]]$jags.data$n.obs,
+                       count = jm.out[[31]]$jags.data$count.obs,
+                       effort = jm.out[[31]]$jags.data$effort)
+
+dat.2026 <- data.frame(Year = 2026,
+                       week = jm.out[[32]]$jags.data$week,
+                       n.obs = jm.out[[32]]$jags.data$n.obs,
+                       count = jm.out[[32]]$jags.data$count.obs,
+                       effort = jm.out[[32]]$jags.data$effort)
+
+data.2025.2026 <- rbind(dat.2025, dat.2026)
+
+data.2025.2026 %>%
+  group_by(Year, week) %>%
+  summarise(n.obs = sum(n.obs),
+            count = sum(count),
+            effort = sum(effort),
+            count.per.effort = count/effort) -> summary.2025.2026
