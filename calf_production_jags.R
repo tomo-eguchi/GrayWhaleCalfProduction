@@ -141,6 +141,9 @@ posterior.summary.df %>%
          effort = lapply(jm.out, FUN = function(x) x$jags.data$effort %>% sum()) %>% unlist(),
          n.whales = lapply(jm.out, FUN = function(x) x$jags.data$count.obs %>% sum()) %>% unlist()) -> Rhat.ESS.summary
 
+saveRDS(Rhat.ESS.summary,
+        file = "RData/Rhat_ESS_Summary_Jags2026.rds")
+
 stats.total.calves <- lapply(jm.out, 
                              FUN = function(x){
   Mean <- x$jm$mean$Total.Calves
