@@ -1,0 +1,246 @@
+---
+title: "Estimating calf counts with the negative binomial likelihood"
+format: 
+  docx:
+    reference-doc: reference_template.docx
+number-sections: true
+editor: visual
+---
+
+# Hierarchical Negative Binomial Model for Gray Whale Calf Production Estimation
+
+This document provides an explanation of the new multi-year hierarchical Negative Binomial model designed to estimate the annual northbound migration of Eastern North Pacific gray whale mother-calf pairs past the Piedras Blancas Lighthouse Station.
+
+## Limitations of the Single-Year Poisson Model
+
+The previous approach used a compound Poisson-Binomial likelihood evaluated independently for each calendar year. It operated under two structural assumptions that broke down under recemt low-abundance years:
+
+A. Independent Flat Priors The previous Poisson-Binomial model assigned an independent, flat uniform prior to each week's mean passage rate: $\lambda_j \sim \text{Uniform}(0, 40)$. When calf counts declined drastically — such as in 2025 when only 17 raw pairs were observed across the entire season — many weekly strata contained entirely zero counts. When a week has zero sightings, an independent model possesses no data to inform that specific $\lambda_j$. The posterior distribution cannot be computed due to large a uncertainty, causing the year-effect parameters to fail to converge.
+
+B. The Poisson Mean-Variance Constraint A standard Poisson distribution assumes that the variance must exactly equal the mean ($\text{Var}(X) = \text{Mean}(X)$). Gray whale calf counts in the recent years are quite overdispersed (many zeros). Because the Poisson-Binomial model lacked an independent parameter to accommodate this overdispersion, it was forced to artificially inflate its estimated mean passage rates ($\lambda$) simply to adjust for the high sampling variance. This created an inherent upward bias in total abundance estimates.
+
+## Methodological Justification for the Upgraded Model
+
+The new framework resolves these limitations by implementing a multi-year hierarchical structure and changing the likelihood function to a Negative Binomial distribution. The hierarhcical structure helps deal with years with low counts and large variance among years in two ways.
+
+A. Hierarchical Parameter Pooling (Borrowing Strength) Instead of treating each year as independent of each other, the new model links all years and weeks within a shared hierarchical framework. The seasonal migration profile, or phenology of mother-calf migration, is modeled via a global prior:
+
+$$\text{week_eff}_w \sim \text{Normal}(0, \sigma_{\text{week}})$$
+
+This structure forces the model to perform partial pooling. The seasonal timing curve across years is determined by the hierarchy. If a recent low-abundance year, such as 2025 and 2026, suffers from a string of zero-counts, the model borrows statistical strength from the global phenology profile to impute the zero counts.
+
+B. Decoupling Mean and Variance via the Negative Binomial Likelihood The proposed new Negative Binomial likelihood contains an inverse-dispersion parameter ($\phi$), which is shared among years. The variance of our observed counts is now modeled quadratically relative to the expected mean ($\alpha_i$):
+
+$$\text{Var}(count.obs_i) = \alpha_i + \frac{\alpha_i^2}{\phi}$$
+
+The overdispersion parameter $\phi$ absorbs the observed large variance in counts and many zeros. This allows the variance to be greater than the mean, which was required by the Poisson likelihood. Consequently, the estimates from the new analysis are lower than the previous estimates.
+
+## Data Structure
+
+The raw observation data consists of shore-based visual counts conducted in 12-hour daily watch blocks. To account for unobserved periods (nights, weekends, and inclement weather), the timeline is discretized into consecutive 3-hour intervals indexed by $i$.
+
+For each 3-hour period $i$, the data includes:
+
+- $count.obs_i$: The number of mother-calf pairs visually recorded.
+
+- $effort_i$: The active observer watch duration in hours ($0 \le effort_i \le 3$).
+
+- $year_i$: An integer index mapping interval $i$ to its respective calendar year.
+
+- $week_i$: An integer index mapping interval $i$ to its respective seasonal week.
+
+Periods during which no survey took place (e.g., nights, weekends, or inclement weather) are explicitly retained in the dataset as structural data points with $count.obs_i = 0$ and $effort_i = 0$.
+
+## Mathematical Formulation of the Model
+
+### The Negative Binomial Likelihood
+
+To account for extreme overdispersion and zero counts in recent years, the model uses a Negative Binomial type-2 formulation parameterized via its mean $\alpha_i$ and a global inverse-dispersion parameter $\phi$.
+
+For intervals where active sampling occurred (i.e., $effort_i > 0$), the likelihood is defined as:
+
+$$count.obs_i \sim Neg-Bin(\alpha, \phi)$$
+
+The probability mass function (PMF) evaluating this process is:
+
+$$ P(count.obs_i = y | \alpha_i, \phi) = \frac{\Gamma(y + \phi)}{y! \Gamma(\phi)} \left(\frac{\phi}{\alpha_i + \phi}\right)^\phi \left(\frac{\alpha_i}{\alpha_i + \phi}\right)^y $$
+
+Where the variance of the observation scales quadratically relative to the mean:
+
+$$ Var(count.obs_i) = \alpha_i + \frac{\alpha_{i}^2}{\phi}$$
+
+As $\phi \to \infty$, the distribution converges exactly to a standard Poisson distribution. Smaller values of $\phi$ indicate a highly overdispersed system with long-tailed counts and excess zeros.
+
+### The Log-Linear Predictor & Effort Mapping
+
+The expected observed count $\alpha_i$ is a function of the underlying true passage rate $\mu_{\text{true}, i}$ and the effort-corrected detection probability $p_{\text{obs.corr}, i}$:
+
+$$\alpha_i = \mu_{\text{true}, i} \times p_{\text{obs.corr}, i}$$
+
+The baseline observation probability $p_{\text{obs}}$ represents detection under ideal conditions over a complete 3-hour interval, estimated via independent replicate tracks to have a mean of 0.889. This value is scaled linearly by active sampling time:
+
+$$p_{\text{obs.corr}, i} = p_{\text{obs}} \times \frac{effort_i}{3}$$
+
+To evaluate this, the model is converted to the natural logarithmic scale:
+
+$$\log(\alpha_i) = \log(\mu_{\text{true}, i}) + \log(p_{\text{obs.corr}, i})$$
+
+$$\log(\alpha_i) = \log(\mu_{\text{true}, i}) + \log(p_{\text{obs}}) + \log\left(\frac{effort_i}{3}\right)$$
+
+The linear predictor simplifies to a series of additive terms:
+
+$$\log(\alpha_i) = \text{year_eff}_{year[i]} + \text{week_eff}_{week[i]} + \log(p_{\text{obs}}) + \text{log_offset}_i$$
+
+## Hierarchical Structure & Non-Centered Parameterization
+
+To resolve the parameter convergence failures ($\hat{R}$ bottlenecks) in the independent annual models, parameters are linked across the entire time series. This forces the model to perform **partial pooling**, allowing high-data years to lend statistical support to years with many zeros.
+
+### Year Effects
+
+The baseline abundance for a given year is modeled as a deviation from a global multi-year intercept ($\mu_{\text{year}}$):
+
+$$\text{year_eff}_y = \mu_{\text{year}} + \sigma_{\text{year}} \cdot \eta_{\text{year}, y}$$
+
+$$\eta_{\text{year}, y} \sim \text{Normal}(0, 1)$$
+
+Where $\mu_{\text{year}}$ represents the average long-term log-abundance across the dataset, and $\sigma_{\text{year}}$ is the standard deviation governing annual population fluctuations.
+
+The $\eta_{\text{year}}$ parameter is the multiplier for the standard deviation ($\sigma_{\text{year}}$). does not act alone. It is a team effort.
+
+#### Sidebar about $\eta$
+
+The best way to think about $\eta_{\text{year}}$ is not as the actual shift itself, but as a **Z-score (a standard score)**, while $\sigma_{\text{year}}$ acts as the **ruler that rescales it**. If we break this down into a physical analogy of walking away from a global baseline ($\mu_{\text{year}}$):
+
+- $\eta_{\text{year}, y}$ is the *number of steps* you take (and the direction). Because it comes from a standard normal distribution ($\text{Normal}(0,1)$), it is perfectly comfortable picking values anywhere from $-3$ to $+3$ (covering 99.7% of all possibilities). An $\eta$ of $-2.5$ means you took $2.5$ steps backward.
+- $\sigma_{\text{year}}$ is the *size of each step*. If the data shows that years fluctuate wildly, Stan will estimate a large value for $\sigma_{\text{year}}$ (e.g., $\sigma_{\text{year}} = 1.5$ on the log scale).
+
+So, if a specific year (such as 2025) experiences a large decline, $\eta_{\text{year}}$ is not limited by its variance of 1. It becomes a large value, e.g., $-2.4$. When multiplied by a large step size ($\sigma_{\text{year}} = 1.5$), the actual distance traveled becomes:
+
+$$-2.4 \times 1.5 = -3.6 \text{ units on the log scale}$$
+
+On the linear scale, $\exp(-3.6)$ is a **97% reduction in calves**.
+
+#### Changes in variance around the global mean
+
+**The relative variance (uncertainty) increases as the number of calves decreases.** For example, in 2004 (a peak year), the estimated mean was 1,677.6 with an SE of 147.2. This yields a Coefficient of Variation (CV = SE / Mean) of 8.7%. In 2025 (the historic low), the estimated mean dropped to 84.6 with an SE of 16.8. This causes the CV to be 19.8%.
+
+The new model handles this shifting variance automatically, but it happens through two entirely different parts of the model structure: **the Negative Binomial likelihood** and **the log-link function**.
+
+In a Negative Binomial distribution, the relative uncertainty—measured as the squared Coefficient of Variation ($CV^2$) is mathematically defined as:
+
+$$CV^2 = \frac{\text{Variance}}{\text{Mean}^2} = \frac{1}{\alpha} + \frac{1}{\phi}$$
+
+Where $\alpha$ is the expected calf count and $\phi$ is the global overdispersion parameter.
+
+When the number of calves ($\alpha$) decreases, the $\frac{1}{\alpha}$ term begins to increase. When calves are abundant (e.g., $\alpha = 15$), $\frac{1}{15}$ is a tiny drop in the bucket. But when calves are extremely rare ($\alpha = 0.1$), $\frac{1}{0.1}$ adds a large relative variance to the system. The model naturally expects low-count years to be filled with disproportionately high statistical noise.
+
+Because the regression runs on the log scale ($\text{year_eff} = \mu_{\text{year}} + \dots$), a constant standard deviation on the log scale ($\sigma_{\text{year}}$) mathematically forces the uncertainty to be proportional to the mean on the linear scale. To a log-linear model, the difference between a count of 1,000 and 1,100 is tiny on the log scale. But the difference between a count of 5 and 0 is *infinite* (since $\log(0) = -\infty$).
+
+When a recent year is dominated by zero counts, the model's posterior distribution for that year's abundance naturally stretches out wide on the linear scale. The model is essentially saying, *"I know the count is very close to zero, but because of the math of zero-counts, the upper bound could easily stretch exponentially higher if we missed just one or two groups."*
+
+- $\eta_{\text{year}, y}$: Has a constant variance of 1; it only tells the model *which direction* and *how many standard deviations* a year is shifting away from the global average.
+- **The Increasing Variance:** Is an emergent property of the Negative Binomial likelihood and the log-link transformation working exactly as intended to mirror the reality of sampling rare populations.
+
+### Weekly Seasonal Profile (Phenology)
+
+The migration timing curve is shared across all years, allowing the model to know *when* the peak migration occurs even if a specific year yields mostly zero counts:
+
+$$\text{week_eff}_w = \sigma_{\text{week}} \cdot \eta_{\text{week}, w}$$
+
+$$\eta_{\text{week}, w} \sim \text{Normal}(0, 1)$$
+
+#### Shared Weekly Parameters ($\eta_{week}$)
+
+The overdispersion/scaling factor (`sigma_week`) is shared among years whereas the actual seasonal effects (`week_eff`) are week-dependent, but equal among years.
+
+- **sigma_week:** This is a single number (e.g., `0.85`). It represents the global "amplitude" or waviness of the seasonal migration curve.
+- **week_eff:** This is a list of 8 completely independent numbers—one for each specific week of the season.
+
+$$\text{week_eff} = \sigma_{\text{week}} \times \begin{bmatrix} \eta_{\text{week}, 1} \\ \eta_{\text{week}, 2} \\ \vdots \\ \eta_{\text{week}, 8} \end{bmatrix} = \begin{bmatrix} \text{week_eff}[1] \\ \text{week_eff}[2] \\ \vdots \\ \text{week_eff}[8] \end{bmatrix}$$
+
+Because each week gets its own raw deviation ($\eta_{\text{week}, w}$), **Week 1 has a completely different numerical value than Week 4 or Week 8.** This allows the model to map out a unique, week-specific passage rate curve that climbs to a peak and declines as the migration passes the station. The model assumes that the underlying timing of the migration—when it peaks and when it tapers off.
+
+What changes between the years is the **`year_eff` intercept**, which shifts the entire 8-week curve vertically up (for high-abundance years like 1994) or dragging it vertically down (for historic low-abundance years like 2025).
+
+Because `week_eff[4]` is tied to Week 4 of *every* year, the model estimates its value using the data from all years combined.
+
+If Week 4 in 2025 happens to have terrible weather and reveals zero calf counts due to missing effort, the model doesn't assume Week 4 had no whales. It looks at the shared history of `week_eff[4]` from the other years, adjusts it for the lower 2025 baseline (`year_eff[2025]`), and uses that mathematical shape to accurately impute how many calves likely passed by undetected while the observers were stuck inside.
+
+### Zero-Effort Data Bypass
+
+For intervals where $effort_i = 0$ (unobserved nights, weekends, or canceled watches), the likelihood evaluation is skipped:
+
+$$\text{If } effort_i = 0: \quad \log(P(count.obs_i)) = 0, \quad p_{\text{obs.corr}, i} = 0$$
+
+This prevents the generation of infinite values ($\log(0)$) during execution, keeping the gradients stable while keeping the timeline intact for full population imputation.
+
+## Conjugate Latent Reconstruction Math (Post-Processing)
+
+Because the continuous Stan model removes the discrete integer parameter $count.true_i$ to maintain smooth gradients, true total calf counts must be reconstructed after sampling finishes. This is achieved via **Gamma-Poisson Conjugacy**.
+
+The Negative Binomial formulation can be mathematically interpreted as a continuous true local passage rate $\lambda_i$ drawn from a Gamma distribution, which then acts as the mean of a Poisson process:
+
+$$\lambda_i \sim \text{Gamma}\left(\phi,  \frac{\phi}{\mu_{\text{true}, i}}\right)$$
+
+$$count.obs_i \sim \text{Poisson}(\lambda_i \cdot p_{\text{obs.corr}, i})$$
+
+### Updating the Latent Posterior Distribution
+
+Using the conjugate property, combining the Gamma prior with the Poisson observation likelihood yields a Gamma posterior distribution for the latent passage rate $\lambda_i$ during that specific 3-hour window:
+
+$$\lambda_i \mid count.obs_i \sim \text{Gamma}\left(\phi + count.obs_i, \frac{\phi}{\mu_{\text{true}, i}} + p_{\text{obs.corr}, i}\right)$$
+
+By drawing random samples from this Gamma distribution for every MCMC iteration, the model calculates the true underlying passage rate.
+
+### Imputing the Missed Calves
+
+The number of calves that passed by unobserved during interval $i$ is driven by the portion of the detection process that went unsampled: $1 - p_{\text{obs.corr}, i}$. The missed calves are simulated using a Poisson distribution:
+
+$$count.missed_i \sim \text{Poisson}(\lambda_i \cdot (1 - p_{\text{obs.corr}, i}))$$
+
+The true total number of calves $T_i$ passing through the study area during interval $i$ is the sum of the known observed individuals and the simulated missing individuals:
+
+$$T_i = count.obs_i + count.missed_i$$
+
+### Zero-Effort Imputation Behavior
+
+If a row represents an unobserved period ($effort_i = 0$), then $count.obs_i = 0$ and $p_{\text{obs.corr}, i} = 0$. Substituting these into the conjugacy formulas demonstrates how the model automatically handles missing data imputation:
+
+$$\lambda_{i, \text{unobserved}} \sim \text{Gamma}\left(\phi + 0, \frac{\phi}{\mu_{\text{true}, i}} + 0\right) \implies \lambda_{i, \text{unobserved}} \sim \text{Gamma}\left(\phi, \frac{\phi}{\mu_{\text{true}, i}}\right)$$
+
+$$count.missed\_{i, \text{unobserved}} \sim \text{Poisson}(\lambda_{i, \text{unobserved}} \cdot (1 - 0)) \implies \text{Poisson}(\lambda_{i, \text{unobserved}})$$
+
+For these unobserved blocks, the model ignores the data and reconstructs the missing counts entirely from the shared hierarchical parameters.
+
+## Prior Distributions
+
+The model applies weakly informative priors:
+
+- **Observation Detection Probability:** $p_{\text{obs}} \sim \text{Normal}(0.889, 0.06375) \mathbf{T}[0,1]$
+
+- **Global Intercept:** $\mu_{\text{year}} \sim \text{Normal}(0, 5)$
+
+- **Hierarchical Scaling Parameters:** $\sigma_{\text{year}} \sim \text{Half-Normal}(0, 2)$, $\sigma_{\text{week}} \sim \text{Half-Normal}(0, 2)$
+
+- **Inverse-Dispersion Parameter:** $\phi \sim \text{Gamma}(2, 0.1)$ (priors shaped to prevent $\phi \to 0$ and maintain numerical stability)
+
+## Why the new estimates are lower than before
+
+There are two reasons for the lower estimates in the new approach than the previous approach.
+
+1.  Hierarchical Shrinkage (Partial Pooling)
+
+In the independent annual models, every year and every week was treated as an isolated data point. If observers had a single "lucky day" where weather was perfect and a large group of mother-calf pairs passed by all at once, a single-year model had no choice but to take that spike at face value. The estimated passage rate ($\lambda$) became large for that entire week, which then scaled up the imputed counts for all the unsampled hours (e.g., nights, weekends) of that week.
+
+By tying the years and weeks together hierarchically, a shared seasonal profile (`week_eff`) and a shared annual variance (`sigma_year`) were created.
+
+The model now looks at an isolated high-count spike and says, *"Historically, this week doesn't usually experience a spike this extreme. This was likely a random sampling fluke."* The hierarchical structure **shrinks** those overinflated, highly volatile weekly parameters back toward the global cross-year average. Because of this "shrinkage," the new model provides estimates that are less than those from the previous approach.
+
+2.  The Poisson vs. Negative Binomial Mean Trap
+
+The second reason for the drop is because of change in the likelihood function (Poisson to Negative Binomial).
+
+In a standard Poisson distribution, the **Variance must equal the Mean** and it cannot accommodate high variance datasets such as gray whale calf count data well.
+
+- **What the Poisson Model Did:** Because a Poisson distribution has no independent parameter to adjust variance, the only way it could accommodate those high-count day spikes was to force its estimated mean rate upward. The Poisson mean became artificially increased to account for the high variance in the data.
+- **What the Negative Binomial Model Does:** The Negative Binomial distribution completely decouples the mean from the variance using the overdispersion parameter ($\phi$). The model allows $\phi$ to absorb all the high-variance spikes and excess zeros, which lowers the mean tracking parameters (`year_eff` and `week_eff`).
