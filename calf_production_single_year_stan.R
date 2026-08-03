@@ -1,6 +1,10 @@
 # This R script fits the Negative-Binomial model described in the 2026 Tech Memo
 # to each year's data independenbtly. The model is called "nb_singleyear". 
 # 
+# Results can be saved when the save.files switch is TRUE. 
+# The data extraction is best with "v3", which is the most up-to-date data extraction
+# version.
+# 
 # To fit hierarchical models, use 'calf_production_hierarchical_stan.R'
 
 rm(list = ls())
@@ -12,6 +16,8 @@ library(ggplot2)
 library(bayesplot)
 
 source("GrayWhaleCalfProduction_fcns_v2.R")
+
+save.files <- FALSE
 
 data.ext <- "v3" # "v2"  # or v2
 #model <- "nb"
@@ -175,7 +181,7 @@ all.estimates %>%
   rownames_to_column("Year") -> all.estimates 
 
 write.csv(all.estimates,
-          file = paste0("Data/all_estimates_", model, ".csv"))
+          file = paste0("data/all_estimates_", model, ".csv"))
 
 nrows <- lapply(global_summary, FUN = nrow) %>%
   unlist() 
@@ -183,5 +189,7 @@ nrows <- lapply(global_summary, FUN = nrow) %>%
 global.summary.df <- do.call("rbind", global_summary)
 global.summary.df %>%
   mutate(Year = rep(all.years, times = nrows)) -> global.summary.df
-write.csv(global.summary.df,
-          file = "data/global_summary_single_year.csv")
+
+if (save.files)
+  write.csv(global.summary.df,
+            file = "data/global_summary_single_year.csv")
