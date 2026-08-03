@@ -1,5 +1,7 @@
-# Converting the year-specific data to a hierarchical model that contains shared
-# parameters over years:
+# This R script fits the Negative-Binomial model described in the 2026 Tech Memo
+# to each year's data independenbtly. The model is called "nb_singleyear". 
+# 
+# To fit hierarchical models, use 'calf_production_hierarchical_stan.R'
 
 rm(list = ls())
 # Load required library
