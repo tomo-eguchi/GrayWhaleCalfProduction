@@ -6,6 +6,177 @@ library(readxl)
 
 source("ExcelFileParams.R")
 
+
+# Some functions that were made by Claude:
+# 
+# =====================================================================
+# Fitted seasonal curves for the NB fixed-year and shifting-peak models
+# =====================================================================
+# Returns, for a chosen year, the fitted per-interval passage curve across
+# weeks with a credible ribbon (computed per posterior draw, then summarised).
+#
+# Curve definition (both models), on the TRUE-passage scale:
+#     mu(y, w) = exp( year_eff[y] + shape(y, w) )
+# i.e. expected pairs per FULLY-OBSERVED 3-h interval, BEFORE detection/effort
+# thinning. (For the expected *observed* count at full effort, multiply by p_obs.)
+# The two models differ only in shape(y, w):
+#     fixed-year      : shape = week_eff[w]                 (discrete, shared)
+#     shifting-peak   : shape = amp * (g(w) - gbar[y])      (smooth, year-specific peak)
+#
+# include_level = TRUE  -> mu on the per-interval mean scale (level included)
+# include_level = FALSE -> exp(shape): the seasonal MULTIPLIER only (level stripped),
+#                          for comparing curve SHAPE independent of abundance.
+#
+# Requires: posterior. (dplyr/ggplot2 only for the example at the bottom.)
+# =====================================================================
+
+## Coerce any fit/draws object to a draws_matrix once; index columns by name.
+##   M <- as_draws_matrix(fit$draws())     # cmdstanr
+as_M <- function(draws) posterior::as_draws_matrix(draws)
+
+# ------------------------------------------------------------------
+# FIXED-YEAR: shape is the shared, discrete week_eff.
+# Evaluated at INTEGER weeks only (week_eff is a free per-week value; there is
+# no smooth interpolation in the model, so don't invent one).
+# ------------------------------------------------------------------
+# M        : draws_matrix
+# year_i   : integer index matching year_eff[year_i]  (see year_index() helper)
+# n_weeks  : global number of weeks (dat$n_weeks); week_eff[1..n_weeks]
+# weeks    : integer weeks to evaluate (default 1:n_weeks)
+curve_fixedyear <- function(M, year_i, n_weeks, 
+                            weeks = 1:n_weeks,
+                            include_level = TRUE, 
+                            probs = c(0.05, 0.5, 0.95)) {
+  ye <- if (include_level) 
+    as.numeric(M[, sprintf("year_eff[%d]", year_i)]) else 0
+  
+  rows <- lapply(weeks, function(w) {
+    we <- as.numeric(M[, sprintf("week_eff[%d]", w)])
+    q  <- quantile(exp(ye + we), probs)
+    data.frame(week = w, 
+               lower = q[[1]], 
+               median = q[[2]], 
+               upper = q[[3]],
+               model = "fixed-year", 
+               row.names = NULL)
+  })
+  
+  return(do.call(rbind, rows))
+}
+
+# ------------------------------------------------------------------
+# SHIFTING-PEAK: shape is the mean-centered Gaussian pulse.
+# CRITICAL: gbar is the mean of the raw Gaussian over the INTEGER week grid
+# 1:n_weeks, exactly as in the Stan model. Computing it over the fine plotting
+# grid instead would shift the curve vertically and break comparability with
+# year_eff (and hence with the fixed-year curve). Do not change this.
+# ------------------------------------------------------------------
+# grid : fine week grid for a smooth curve (default step 0.1)
+# Uses a single shared `width`. For the skew variant, replace `width` below with
+# width_l / width_r selected by sign of (w - peak) in BOTH the gbar loop and g.
+curve_shiftpeak <- function(M, year_i, 
+                            n_weeks, 
+                            grid = seq(1, n_weeks, by = 0.1),
+                            include_level = TRUE, 
+                            probs = c(0.05, 0.5, 0.95)) {
+  ye   <- if (include_level) 
+    as.numeric(M[, sprintf("year_eff[%d]", year_i)]) else 0
+  amp  <- as.numeric(M[, "amp"])
+  wid  <- as.numeric(M[, "width"])
+  peak <- as.numeric(M[, sprintf("peak_week[%d]", year_i)])
+  
+  # gbar[draw] = mean over integer weeks 1:n_weeks of exp(-0.5*((k-peak)/wid)^2)
+  g_int <- vapply(1:n_weeks,
+                  function(k) exp(-0.5 * ((k - peak) / wid)^2),
+                  numeric(length(peak)))          # draws x n_weeks
+  gbar  <- rowMeans(g_int)                          # draws-length
+  
+  rows <- lapply(grid, function(w) {
+    g    <- exp(-0.5 * ((w - peak) / wid)^2)        # draws-length
+    seas <- amp * (g - gbar)                        # mean-centred pulse
+    q    <- quantile(exp(ye + seas), probs)
+    data.frame(week = w, 
+               lower = q[[1]], 
+               median = q[[2]], upper = q[[3]],
+               model = "shifting-peak", 
+               row.names = NULL)
+  })
+  return(do.call(rbind, rows))
+}
+
+# ------------------------------------------------------------------
+# Thin dispatcher, so you can call one function with model = "..."
+# ------------------------------------------------------------------
+season_curve <- function(M, 
+                         model = c("fixedyear", "shiftingpeak"),
+                         year_i, n_weeks, 
+                         include_level = TRUE, ...) {
+  model <- match.arg(model)
+  if (model == "fixedyear")
+    curve_fixedyear(M, year_i, 
+                    n_weeks, 
+                    include_level = include_level, ...)
+  else
+    curve_shiftpeak(M, year_i, 
+                    n_weeks, 
+                    include_level = include_level, ...)
+}
+
+# ------------------------------------------------------------------
+# Helper: map a calendar year to its year_eff index (2020 is missing, so the
+# index is NOT year - 1993). Pass the same year vector used to build the model.
+#   year_levels <- sort(unique(raw$Year))
+#   year_index(2015, year_levels)  ->  the integer for year_eff[.]
+# ------------------------------------------------------------------
+year_index <- function(year, 
+                       year_levels) match(year, year_levels)
+
+
+# =====================================================================
+# EXAMPLE — the 2014/2015 divergence figure
+# =====================================================================
+# Overlays the two fitted curves for one year plus the observed passage timing.
+# Requires the fixed-year fit (M_fix) and the shifting-peak fit (M_shift), each
+# from the SAME data (same n_weeks, same year ordering).
+#
+# library(dplyr); library(ggplot2)
+#
+# M_fix   <- as_M(fit_fixedyear$draws())
+# M_shift <- as_M(fit_shiftpeak$draws())
+# year_levels <- sort(unique(raw$Year))
+# n_weeks <- dat$n_weeks
+# yr <- 2015; yi <- year_index(yr, year_levels)
+#
+# cf <- curve_fixedyear(M_fix,   yi, n_weeks)                 # integer weeks
+# cs <- curve_shiftpeak(M_shift, yi, n_weeks)                 # smooth grid
+# curves <- rbind(cf, cs)
+#
+# ## observed passage timing for the same year: count per effort by week.
+# ## This is ~proportional to mu * p_obs, so it shows WHERE the peak is, not its
+# ## absolute height -> put it on a secondary axis rather than forcing one scale.
+# obs <- raw %>% filter(Year == yr, effort > 0) %>%
+#   group_by(week) %>% summarise(cpe = sum(count) / sum(effort), .groups = "drop")
+# scl <- max(curves$median) / max(obs$cpe)                    # visual scale only
+#
+# ggplot(curves, aes(week)) +
+#   geom_ribbon(aes(ymin = lower, ymax = upper, fill = model), alpha = .20) +
+#   geom_line(aes(y = median, colour = model), linewidth = .8) +
+#   geom_point(data = obs, aes(x = week, y = cpe * scl),
+#              inherit.aes = FALSE, colour = "black") +
+#   scale_y_continuous(
+#     name = "fitted pairs per interval (true passage)",
+#     sec.axis = sec_axis(~ . / scl, name = "observed count / effort")) +
+#   labs(x = "week (model index)", title = paste("Seasonal curve —", yr),
+#        subtitle = "fixed-year peaks at the common week; shifting-peak follows this year's data") +
+#   theme_minimal()
+#
+# What to look for: the shifting-peak median (smooth) peaking at a DIFFERENT week
+# than the fixed-year median (integer-week line), with the observed points
+# supporting the shifted position -> the mechanism behind the 2015 disagreement.
+#
+# Tip: to compare SHAPE only (ignore that 2015 was a high-abundance year), call
+# both curve fns with include_level = FALSE and plot the seasonal multiplier.
+
 # Added 2026-06-30 TE
 # Using the stan output calf abundance estimates are computed using posterior samples for single year
 # The Stan model is GWCalfCount_nb_singleyear.stan
@@ -222,77 +393,8 @@ PPC_counts <- function(stan.fit, stan.data, save.fig = F){
   }
 }
 
-
-
-compute.LOOIC <- function(loglik.array, MCMC.params){
-  n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
-  n.samples <- dim(loglik.array)[1]
-  
-  # Create an empty list to hold the log likelihood values
-  #ll.list <- vector("list", length = n.samples)
-  
-  loglik.list <- lapply(1:n.samples, function(s) {
-    # Extract the slice for the current sample 's'
-    slice <- loglik.array[s, , , ]
-    # Return the non-NA values from that slice
-    slice[!is.na(slice)]
-  })
-  
-  #loglik.list <- apply(loglik.array, 1, function(slice) slice[!is.na(slice)])
-  
-  # loop through each MCMC sample and collect log likelihood values
-  # for (s in 1:n.samples){
-  #   ll.cube <- loglik.array[s,,,]
-  #   ll.list[[s]] <- ll.cube[!is.na(loglik.array[s,,,])]
-  # }
-  
-  loglik.mat <- do.call(rbind, loglik.list)
-  
-  Reff <- relative_eff(exp(loglik.mat),
-                       chain_id = rep(1:MCMC.params$n.chains,
-                                      each = n.per.chain),
-                       cores = MCMC.params$n.chains)
-  
-  loo.out <- rstanarm::loo(loglik.mat, 
-                           r_eff = Reff, 
-                           cores = MCMC.params$n.chains, 
-                           k_threshold = 0.7)
-  
-  out.list <- list(Reff = Reff,
-                   loo.out = loo.out)
-  
-  return(out.list)  
-}
-
-
-# Compute the "rank-normalized R-hat" by Vehtari et al. (2021) from jagsUI
-# output.
-# Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P.-C. (2021). Rank-normalization, folding, and localization: An improved R-hat for assessing convergence of MCMC. Bayesian Analysis, 16(2), 667–718.
-# https://doi.org/10.1214/20-BA1221
-# 
-# The first input is MCMC samples. If the jagsUI output is jm, this is jm$samples.
-# The second input is a string of regular expression. This is a bit
-# complicated. For example, to select "BF.Fixed" and all K parameters, which 
-# are indexed, Use "^BF\\.Fixed|^K\\[" A '^' specifies that the following letter
-# is the beginning of a string. '\\.' specifies a literal period, which needs
-# to be "escaped" by two backslashes (\\). A square bracket needs to be escaped
-# with two backslashes as well. The pipe (|) indicates 'or'.  
-# 
-rank.normalized.R.hat <- function(samples, params, MCMC.params){
-  library(posterior)
-  library(coda)
-  
-  col.names <- grep(params, varnames(samples), value = TRUE, perl = TRUE)
-  subset.mcmc.samples <- samples[, col.names]
-  
-  subset.mcmc.array <- as_draws_array(subset.mcmc.samples, 
-                                      .nchains = MCMC.params$n.chains)
-  
-  rhat.values <- apply(subset.mcmc.array, MARGIN = 3, FUN = posterior::rhat)
-  
-  return(rhat.values)
-}
-
+# Removed compute.LOOIC as this can be done easily using the posterior package
+# Removed rank.normalized.R.hat as this can be done easily using the posterior package
 
 get.all.data <- function(sheet.name.inshore, sheet.name.offshore,
                          col.types.inshore, col.types.offshore,
@@ -1076,35 +1178,7 @@ find.effort.2 <- function(x){
               shift.df = shift.df))
 }
 
-
-# extract MCMC diagnostic statistics, including Rhat, loglikelihood, DIC, and LOOIC
-MCMC.diag <- function(jm, MCMC.params, params.to.monitor){
-  n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
-  
-  Rank.norm.Rhat <- rank.normalized.R.hat(jm$samples, 
-                                          params = params.to.monitor)
-  
-  max.Rhat <- unlist(lapply(jm$Rhat, FUN = max, na.rm = T))
-  
-  loglik <- jm$sims.list$loglik
-  
-  Reff <- relative_eff(exp(loglik), 
-                       chain_id = rep(1:MCMC.params$n.chains, 
-                                      each = n.per.chain),
-                       cores = MCMC.params$n.chains)
-  loo.out <- loo(loglik, 
-                 r_eff = Reff, 
-                 cores = MCMC.params$n.chains)
-  
-  return(list(DIC = jm$DIC,
-              loglik.obs = loglik,
-              Reff = Reff,
-              Rank.norm.Rhat = Rank.norm.Rhat,
-              max.Rhat = max.Rhat,
-              loo.out = loo.out))
-  
-}
-
+# Removed MCMC.diag because they can be done easily with the posterior package
 
 # Function to convert character time (e.g., 1349) to minutes from 
 # a particular start time of the day (e.g., 0700). Default is midnight (0000)
