@@ -1,5 +1,11 @@
-# Converting the year-specific data to a hierarchical model that contains shared
-# parameters over years:
+# This R script file conducts all hierarchical analyses in the tech memo using Stan.
+# Results can be saved when the save.files switch is TRUE. 
+# The data extraction is best with "v3", which is the most up-to-date data extraction
+# version.
+# Analysis model can be selected by choosing either one of "nb_fixedyear", 
+# "nb_shiftingpeak", or "nb_shiftingpeak_centered". The "nb_fixedyear" model is
+# selected to produce final estimates for 2026. To fit the Negative-Binomial model
+# to each year independently, use 'calf_production_single_year_stan.R'. 
 
 rm(list = ls())
 # Load required library
