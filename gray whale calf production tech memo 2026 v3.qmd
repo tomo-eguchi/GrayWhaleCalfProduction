@@ -324,6 +324,9 @@ The protocol for processing the raw data prior to analysis was similar to that i
 
 ## 3. Methods
 
+Check the following error picked by Claude AI:
+**Section 3 defines the shape constraint as ∑s_w = 0 with s_w = σ_s·s̃_w, but the tilde notation collides between the raw and scaled versions in the extracted text. Worth checking it renders distinctly in the final document. **
+
 Model notation is summarized in @tbl-model-table.
 
 ```{r model-notation, echo=FALSE, include=FALSE}
@@ -1089,7 +1092,7 @@ In summary, the differences in point estimates from the previous report and this
 
 The new approach provided reliable estimates of the abundance of migrating Eastern North Pacific gray whale mother--calf pairs in recent years. The three models within the approach, i.e., single-year, fixed-year, and fixed-year shifting-peak, agreed on estimates, indicating the robustness of these estimates. When developing the hierarchical models, we deliberately avoided placing a hyper-prior on annual abundance ($\theta_y$). Such an approach would shrink individual annual estimates toward the grand mean, introducing positive bias during low-abundance years -- an undesirable outcome for a declining population. The fixed-year model, which shared the migration shape among years, was selected as the best model. However, the fixed-year shifting-peak model indicated that the peak migration may shift in some years, the cause of which requires thorough analyses of possible environmental and physical factors that might have affected it.
 
-Following the previous analysis, the total abundance is estimated by imputing unobserved periods (e.g., bad weather, nights, etc.) by assuming that the seasonal migration curve is constant across years. There were anecdotal reports from citizen scientists that some whales had been seen at the Piedras Blancas Light Station before the 2026 survey began. Combined with evidence of possible changes in the peak migration among years (@suppfig-shifting-peak). Possible changes in migration timing across years, the estimated abundance may be biased low if the beginning of the migration was not counted. Future surveys may start earlier to detect possible early migration. The selected model (the NB fixed-year model) slightly underestimates the zero counts (<2%), which would bias the estimate positively. The bias is substantially smaller than that from the Poisson single-year model or from treating years as a random effect. Finally, the detection probability remains the same as that reported in Perryman et al.(2002); empirically updating this parameter is a priority for future work.
+Following the previous analysis, the total abundance is estimated by imputing unobserved periods (e.g., bad weather, nights, etc.) by assuming that the seasonal migration curve is constant across years. There were anecdotal reports from citizen scientists that some whales had been seen at the Piedras Blancas Light Station before the 2026 survey began. Combined with evidence of possible changes in the peak migration among years (@suppfig-shifting-peak), the estimated abundance may be biased low if the beginning of the migration was not counted. Future surveys may start earlier to detect possible early migration. The selected model (the NB fixed-year model) slightly underestimates the zero counts (<2%), which would bias the estimate positively. The bias is substantially smaller than that from the Poisson single-year model or from treating years as a random effect. Finally, the detection probability remains the same as that reported in Perryman et al.(2002); empirically updating this parameter is a priority for future work.
 
 
 ```{r increase-2026, echo=FALSE, include=FALSE}
