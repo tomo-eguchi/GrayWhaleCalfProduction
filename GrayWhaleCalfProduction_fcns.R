@@ -1,4 +1,6 @@
 
+stop("Use GrayWhaleCalfProduction_fcns_v2.R instead.")
+
 library(rstan)
 library(loo)
 library(readxl)
