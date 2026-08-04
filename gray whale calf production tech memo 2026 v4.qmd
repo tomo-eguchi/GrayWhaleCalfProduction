@@ -582,6 +582,7 @@ phi.M.fixed <- as_M(fixed.year.stan$draws(c("phi")))
 p.phi.posterior <- ggplot(data.frame(phi = phi.M.fixed)) +
   geom_density(aes(x = phi),
                fill = "purple", alpha = 0.6) +
+  labs(x = expression(phi), y = "Density") +
   theme_bw()
 
 save.fig.fcn(fig = p.phi.posterior,
@@ -1007,7 +1008,7 @@ ft.single.year %>%
 
 ```
 
-Estimated abundance of Eastern North Pacific mother--calf pairs using the Poisson (Stewart and Weller 2021, POI) and Negative Binomial (NB) models applied to each year independently (the NB single-year model). LCL and UCL are 2.5% and 97.5% credible limits, respectively.
+Estimated abundance of Eastern North Pacific mother--calf pairs using the Poisson-Binomial (POI, Stewart and Weller 2021, POI) and Negative Binomial (NB) models applied to each year independently (the NB single-year model). LCL and UCL are 2.5% and 97.5% credible limits, respectively.
 :::
 
 \newpage
@@ -1111,7 +1112,7 @@ knitr::include_graphics(paste0("figures/season_curve.png"))
 
 ```
 
-Estimated migration curves of Eastern North Pacific gray whale mother--calf pairs at the Piedras Blancas Light Station from 1994 to 2026, using the Negative Binomial model. The fixed-year model assumes a constant peak over the years whereas the fixed-year shifting-peak model allows the peak to change from year to year.
+Estimated migration curves of Eastern North Pacific gray whale mother--calf pairs at the Piedras Blancas Light Station from 1994 to 2026, using the Negative Binomial model. The fixed-year model assumes a constant peak over the years, whereas the fixed-year shifting-peak model allows the peak to change from year to year.
 :::
 
 \newpage
