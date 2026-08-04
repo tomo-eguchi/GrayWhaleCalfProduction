@@ -1,5 +1,5 @@
 // =====================================================================
-// Smooth seasonal pulse -- MEAN-CENTERED -- year-varying peak timing
+// Shifting-peak -- MEAN-CENTERED -- 
 // =====================================================================
 // Fixes the amp <-> year_eff ridge that caused the tree-depth blowups and the
 // marginal mu_peak convergence in the baseline-anchored version.
@@ -8,11 +8,12 @@
 // (per year), so year_eff becomes the MEAN log-level and no longer trades off
 // against amp. Direct analog of the sum_to_zero fix that cleaned up fixed-year.
 //
-// Year levels are UNPOOLED (flat), matching the fixed-year model, so this
+// Year levels are UNPOOLED, matching the fixed-year model, so this
 // isolates the effect of freeing the timing. Abundance estimates should be
 // invariant to the centering; only the amp/year_eff coordinates change.
 // =====================================================================
 
+// Data are same as for the fixed-year model
 data {
   int<lower=1> n_obs;
   int<lower=1> n_years;
@@ -25,6 +26,7 @@ data {
   array[n_obs] int<lower=1, upper=n_weeks> week_idx;
 }
 
+// Compute the middle of the migration season
 transformed data {
   real week_mid = (n_weeks + 1) / 2.0;
 }
@@ -34,7 +36,7 @@ parameters {
 
   vector[n_years] year_eff;          // UNPOOLED mean log-level (flat prior)
 
-  real<lower=0> amp;                 // log peak-to-trough amplitude (shared)
+  real<lower=0> amp;                 // log peak-to-trough amplitude (shared among years)
   real<lower=0.5> width;             // pulse width in weeks (shared)
   real mu_peak;                      // mean peak week across years
   real<lower=0> sigma_peak;          // between-year SD of peak timing (weeks)
@@ -44,6 +46,7 @@ parameters {
 }
 
 transformed parameters {
+  // peak week is the overall mean + SD of variability in peaks among years times raw peak offset
   vector[n_years] peak_week = mu_peak + sigma_peak * peak_raw;
   vector[n_obs]   log_mu_true;
   vector[n_obs]   log_alpha;
@@ -58,14 +61,19 @@ transformed parameters {
       gbar[y] = acc / n_weeks;
     }
     for (i in 1:n_obs) {
+	  // week effect for each observation
       real g    = exp(-0.5 * square((week_idx[i] - peak_week[year_idx[i]]) / width));
+	  // make it mean zero
       real seas = amp * (g - gbar[year_idx[i]]);     // mean-zero across weeks
+	  // the abundance for that week is the year effect plus the season effect
       log_mu_true[i] = year_eff[year_idx[i]] + seas;
+	  // the mean is the total available, detection probability, and effort offset
       log_alpha[i]   = log_mu_true[i] + log(p_obs) + log_offset[i];
     }
   }
 }
 
+// Observation likelihood:
 model {
   year_eff   ~ normal(0, 5);
   amp        ~ normal(0, 5);           // widened from N(0,3): data wants amp ~ 8
