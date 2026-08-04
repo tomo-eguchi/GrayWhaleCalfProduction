@@ -348,21 +348,23 @@ stan.post.process <- function(stan.fit, stan.data, pre.stan.data, out.file.name,
 
 # Added by TE 2026-06-26
 # Posterior Prdictive Check of the Stan output from GWCalfCount_nb.stan
-# Use calf_production_stan_2026_v4TE.R to run the Stan model. 
-PPC_counts <- function(stan.fit, stan.data, save.fig = F){
+# Use calf_production_hierarchical_stan.R to run the Stan model. 
+PPC_counts <- function(stan.fit, stan.data, n.reps = 2000, save.fig = F){
   # 1. Extract the simulated replication matrix [8000 iterations x 17008 columns]
   y_rep <- stan.fit$draws("count_rep", format = "matrix")
+  
+  if (n.reps > nrow(y_rep)) n.reps <- 2000
   
   # 2. Identify the active survey days
   real_days <- which(stan.data$effort > 0)
   
-  # 3. Subset both your actual data and your simulated data to ONLY include active days
+  # 3. Subset both actual data and simulated data to ONLY include active days
   y_observed_clean <- stan.data$count_obs[real_days]
   y_rep_clean      <- y_rep[, real_days]
   
-  # 4. Plot Density Overlay
+  # 4. Plot Density Overlay. ppc_bars is in the bayesplot package
   p.ppc.bars <- ppc_bars(y = y_observed_clean, 
-                         yrep = y_rep_clean[1:2000, ]) +
+                         yrep = y_rep_clean[1:n.reps, ]) +
     coord_cartesian(xlim = c(-0.5, 6.5)) + 
     labs(title = "Posterior Predictive Check: Discrete Sighting Counts",
          x = "Number of mother-calf pairs observed",
