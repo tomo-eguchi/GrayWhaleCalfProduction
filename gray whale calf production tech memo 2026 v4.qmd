@@ -267,6 +267,7 @@ p.phi.smooth <- ggplot() +
                fill = "purple", alpha = 0.5) +
   geom_density(data = phi.prior, aes(x = phi), 
                fill = "red", alpha = 0.5) +
+  labs(x = expression(phi), y = "Density") +
   xlim(c(0, 50)) +
   facet_wrap(~ Year) +
   theme_bw()
@@ -546,11 +547,11 @@ n.weeks <- fixed.year.stan.info$stan.data$n_weeks
 season.curve <- list()
 for (k in 1:length(all.years)){
   season.curve.fixed <- season_curve(M = M.fixed, 
-                                     model = "fixedyear",
+                                     Model = "fixedyear",
                                      year_i = k,
                                      n_weeks = n.weeks)
   season.curve.shifting <- season_curve(M = M.shifting, 
-                                     model = "shiftingpeak",
+                                     Model = "shiftingpeak",
                                      year_i = k,
                                      n_weeks = n.weeks)
   
@@ -562,11 +563,11 @@ for (k in 1:length(all.years)){
 season.curve.df <- do.call(rbind, season.curve)
 
 p.season.curve <- ggplot(season.curve.df) +
-  geom_path(aes(x = week, y = median, color = model)) +
+  geom_path(aes(x = week, y = median, color = Model)) +
   geom_ribbon(aes(x = week, ymin = lower, 
-                  ymax = upper, fill = model),
+                  ymax = upper, fill = Model),
               alpha = 0.5) +
-  facet_wrap(~ Year) +
+  facet_wrap(~ Year, scales = "free_y") +
   theme_bw() +
   theme(legend.position = "top")
 
@@ -754,7 +755,7 @@ knitr::include_graphics("figures/counts_2025_2026.png")
 
 ```{r}
 #| label: fig-Nhats-NB-POI
-#| fig-cap: "Estimated annual abundance of Eastern North Pacific gray whale mother--calf pairs and associated 95% credible intervals from the Negative Binomial fixed-year (NB fixed-year) and Poisson-Binomial single-year (POI single-year) models. The upper credible limit of the 2026 estimate from the Poisson model was truncated at 2500. The actual upper limit was 11,485"
+#| fig-cap: "Estimated annual abundance of Eastern North Pacific gray whale mother--calf pairs and associated 95% credible intervals from the Negative Binomial fixed-year (NB fixed-year) and Poisson-Binomial single-year (POI single-year) models. The upper credible limit of the 2026 estimate from the Poisson model was truncated at 2500. The actual upper limit was 11,485."
 #| echo: false
 #| message: false
 #| dev.args: list(bg = "transparent")
@@ -1051,7 +1052,7 @@ knitr::include_graphics("figures/single_year_phi.png")
 
 ```
 
-Prior (red) and posterior (purple) distributions of the dispersion parameter of the Negative Binomial model fitted to each year separately.
+Prior (red) and posterior (purple) distributions of the dispersion parameter ($\phi$) of the Negative Binomial single-year model fitted to each year separately.
 :::
 
 \newpage
@@ -1066,7 +1067,7 @@ knitr::include_graphics(paste0("figures/fixed_year_phi.png"))
 
 ```
 
-Posterior distribution of the dispersion parameter of the fixed-year Negative Binomial model.
+Posterior distribution of the dispersion parameter of the Negative Binomial fixed-year model.
 :::
 
 \newpage
@@ -1081,9 +1082,8 @@ knitr::include_graphics(paste0("figures/POI_NB_estimates.png"))
 
 ```
 
-Estimated abundance (median and 95% credible intervals) of migrating Eastern North Pacific gray whale mother--calf pairs at the Piedras Blancas Light Station from 1994 to 2026. The upper credible limit for the 2026 estimate by the Poisson model was truncated at 2500.
+Estimated abundance (median and 95% credible intervals) of migrating Eastern North Pacific gray whale mother--calf pairs at the Piedras Blancas Light Station from 1994 to 2026, using the Negative Binomial fixed-year (NB fixed year), the Negative Binomial single-year (NB single-eyar), and the Poisson-Binomial single-year (POI single-year) models. The upper credible limit for the 2026 estimate by the Poisson-Binomial model was truncated at 2500. The actual upper limit was 11,485.
 :::
-
 
 \newpage
 
@@ -1112,7 +1112,7 @@ knitr::include_graphics(paste0("figures/season_curve.png"))
 
 ```
 
-Estimated migration curves of Eastern North Pacific gray whale mother--calf pairs at the Piedras Blancas Light Station from 1994 to 2026, using the Negative Binomial model. The fixed-year model assumes a constant peak over the years, whereas the fixed-year shifting-peak model allows the peak to change from year to year.
+Estimated migration curves of Eastern North Pacific gray whale mother--calf pairs at the Piedras Blancas Light Station from 1994 to 2026, using the Negative Binomial model. The fixed-year model assumes a constant peak over the years, whereas the fixed-year shifting-peak model allows the peak to change from year to year. Y-axis scales are different among years. 
 :::
 
 \newpage
@@ -1127,5 +1127,5 @@ knitr::include_graphics(paste0("figures/PPC_prop_zeros_v2.png"))
 
 ```
 
-Proportion of zeros in simulated data using the NB fixed-year model and the observed proportion of zeros (black vertical line). The left panel shows results using all data from 1994 to 2026, whereas the right panel shows results from 2025 and 2026 only.
+Proportion of zeros in observed (black vertical line) and simulated data using the NB fixed-year model. The left panel shows results using all data from 1994 to 2026, whereas the right panel shows results from 2025 and 2026 only.
 :::
