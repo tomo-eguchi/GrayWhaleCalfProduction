@@ -57,7 +57,7 @@ curve_fixedyear <- function(M, year_i, n_weeks,
                lower = q[[1]], 
                median = q[[2]], 
                upper = q[[3]],
-               model = "fixed-year", 
+               Model = "fixed-year", 
                row.names = NULL)
   })
   
@@ -98,7 +98,7 @@ curve_shiftpeak <- function(M, year_i,
     data.frame(week = w, 
                lower = q[[1]], 
                median = q[[2]], upper = q[[3]],
-               model = "shifting-peak", 
+               Model = "shifting-peak", 
                row.names = NULL)
   })
   return(do.call(rbind, rows))
@@ -108,11 +108,11 @@ curve_shiftpeak <- function(M, year_i,
 # Thin dispatcher, so you can call one function with model = "..."
 # ------------------------------------------------------------------
 season_curve <- function(M, 
-                         model = c("fixedyear", "shiftingpeak"),
+                         Model = c("fixedyear", "shiftingpeak"),
                          year_i, n_weeks, 
                          include_level = TRUE, ...) {
-  model <- match.arg(model)
-  if (model == "fixedyear")
+  Model <- match.arg(Model)
+  if (Model == "fixedyear")
     curve_fixedyear(M, year_i, 
                     n_weeks, 
                     include_level = include_level, ...)
