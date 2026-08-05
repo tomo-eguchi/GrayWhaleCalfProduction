@@ -29,29 +29,17 @@ model <- "nb_fixedyear"
 # Change this to use results from a previous run
 run.date <- "2026-07-09" #Sys.Date() #"2026-06-26"    
 
-if (data.ext == "v1"){
-  data.path <- "data/Formatted Annual Data/"
-  FILES <- list.files(path = data.path, 
-                      pattern = "Formatted.csv")
-  
-} else {
-  data.path <- paste0("data/Formatted Annual Data Combined ", 
-                      data.ext, "/")
-  FILES <- list.files(path = data.path,
-                      pattern = paste0(data.ext, ".csv"))
-  
-}
+data.path <- paste0("data//Formatted Annual Data Combined ", 
+                    data.ext, "//")
+FILES <- list.files(path = data.path,
+                    pattern = paste0(data.ext, ".csv"))
 
 # get data
 all.data <- count.obs <- effort <- week <- n.obs <- n.weeks <- list()
 years <- vector(mode = "numeric", length = length(FILES))
 
 for(i in 1:length(FILES)){
-  if (data.ext == "v1"){
-    years[i] <- as.numeric(str_split(FILES[i], " Formatted.csv")[[1]][1])
-  } else {
-    years[i] <- as.numeric(str_split(FILES[i], " Formatted_combined_v3.csv")[[1]][1]) 
-  }
+  years[i] <- as.numeric(str_split(FILES[i], " Formatted_combined_v3.csv")[[1]][1]) 
   
     data <- read.csv(paste0(data.path, FILES[i]))
     data$Effort[is.na(data$Effort)] <- 0
@@ -83,7 +71,7 @@ calf_data %>%
   arrange(year_idx, week_idx) -> prepped_data_clean
 
 all.years <- unique(prepped_data_clean$calendar_year)
-model.file <- paste0("models/GWCalfCount_", model, ".stan")
+model.file <- paste0("models//GWCalfCount_", model, ".stan")
 out.file <- paste0("GWCalfCount_Stan_", model, "_", run.date)
 stan_data <- list(
   n_obs      = nrow(prepped_data_clean),
@@ -113,7 +101,7 @@ if (model == "nb_shiftingpeak_centered"){
 }
 
 
-if (!file.exists(paste0("Rdata/", out.file, ".rds"))){
+if (!file.exists(paste0("RData//", out.file, ".rds"))){
   # 1. Compile and Fit the Negative Binomial Model
   # In your R script where you load your model, add force_recompile = TRUE just once:
   mod_ <- cmdstan_model(stan_file = model.file,
@@ -137,9 +125,9 @@ if (!file.exists(paste0("Rdata/", out.file, ".rds"))){
   )
   toc <- Sys.time() -  tic
   
-  fit_$save_object(file = paste0("RData/", out.file, ".rds"))
+  fit_$save_object(file = paste0("RData//", out.file, ".rds"))
   
-  out.list <- list(out.filename = paste0("RData/", out.file, ".rds"),
+  out.list <- list(out.filename = paste0("RData//", out.file, ".rds"),
                    data.ext = data.ext, # "v2"  # or v2
                    data.path = data.path,
                    model = model.file,
@@ -150,11 +138,11 @@ if (!file.exists(paste0("Rdata/", out.file, ".rds"))){
                    System = Sys.getenv())
   
   saveRDS(out.list, 
-          file = paste0("RData/", out.file, ".info"))
+          file = paste0("RData//", out.file, ".info"))
 } else {
   
-  fit_ <- readRDS(paste0("RData/", out.file, ".rds"))
-  out.list <- readRDS(paste0("RData/", out.file, ".info"))
+  fit_ <- readRDS(paste0("RData//", out.file, ".rds"))
+  out.list <- readRDS(paste0("RData//", out.file, ".info"))
 }
 
 # 1. Extract the raw log-likelihood matrix [8000 iterations x 17008 columns]
@@ -209,14 +197,14 @@ loo.out <- list(raw.log.lik = raw_log_lik,
 
 if (save.files){
   write.csv(all.estimates,
-            file = paste0("data/all_estimates_", model, ".csv"))
+            file = paste0("data//all_estimates_", model, ".csv"))
   write.csv(global_summary,
-            file = paste0("data/global_summary_", model, ".csv"))
+            file = paste0("data//global_summary_", model, ".csv"))
   saveRDS(loo.out,
-          file = paste0("RData/loo_out_", model, ".rds"))
+          file = paste0("RData//loo_out_", model, ".rds"))
   saveRDS(stan.out,
-          file = paste0("RData/stan_out_", model, ".rds"))
+          file = paste0("RData//stan_out_", model, ".rds"))
   saveRDS(PPC.out,
-          file = paste0("RData/PPC_out_", model, ".rds"))
+          file = paste0("RData//PPC_out_", model, ".rds"))
 }
 
