@@ -26,7 +26,7 @@ source("GrayWhaleCalfProduction_fcns_v2.R")
 
 save.files <- TRUE #FALSE
 
-data.ext <- "v3" # "v2"  # or v2
+data.ext <- "v3" # this has to be v3
 #model <- "nb"
 model <- "nb_singleyear"
 run.date <- Sys.Date() # "2026-06-30"    #  Change this to use results from a previous run

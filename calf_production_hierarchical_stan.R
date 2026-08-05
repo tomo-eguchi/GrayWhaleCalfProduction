@@ -17,17 +17,16 @@ library(bayesplot)
 
 source("GrayWhaleCalfProduction_fcns_v2.R")
 
-save.files <- FALSE #TRUE #
+save.files <- TRUE #FALSE #
 
-data.ext <- "v3" # "v2"  # or v2
-#model <- "nb"
-#model <- "nb_sens_sigma_year"
+data.ext <- "v3" # has to be v3
+
 model <- "nb_fixedyear"
 #model <- "nb_shiftingpeak"
 #model <- "nb_shiftingpeak_centered"
 
 # Change this to use results from a previous run
-run.date <- "2026-07-09" #Sys.Date() #"2026-06-26"    
+run.date <- Sys.Date() #"2026-07-09" #"2026-06-26"    
 
 data.path <- paste0("data//Formatted Annual Data Combined ", 
                     data.ext, "//")
