@@ -240,7 +240,7 @@ stan.post.process.1year <- function(stan.fit, stan.data, pre.stan.data, out.file
   #print(annual_abundance)
   if (save.file)
     write.csv(summary_stats,
-              file = paste0("data/", out.file.name, ".csv"),
+              file = paste0("data//", out.file.name, ".csv"),
               quote = FALSE)
   
   return(list(abundance = summary_stats))
@@ -320,7 +320,7 @@ stan.post.process <- function(stan.fit, stan.data, pre.stan.data, out.file.name,
   #print(annual_abundance)
   if (save.file)
     write.csv(annual_abundance,
-              file = paste0("data/", out.file.name, ".csv"),
+              file = paste0("data//", out.file.name, ".csv"),
               quote = FALSE)
   
   p.plot <- ggplot(annual_abundance, aes(x = Year, y = Median)) +
@@ -336,7 +336,7 @@ stan.post.process <- function(stan.fit, stan.data, pre.stan.data, out.file.name,
     theme_minimal()
   
   if (save.fig)
-    ggsave(filename = "figures/calf_abundance.png",
+    ggsave(filename = "figures//calf_abundance.png",
            plot = p.plot,
            device = "png",
            dpi = 600)
@@ -385,11 +385,11 @@ PPC_counts <- function(stan.fit, stan.data, n.reps = 2000, save.fig = F){
   
   if (save.fig){
     ggsave(p.ppc.bars,
-           filename = "figures/ppc_bars.png",
+           filename = "figures//ppc_bars.png",
            device = "png",
            dpi = 600)
     ggsave(p.ppc.stat,
-           filename = "figures/ppc_stat.png",
+           filename = "figures//ppc_stat.png",
            device = "png",
            dpi = 600)
   }
