@@ -3,9 +3,16 @@
 # 
 # Results can be saved when the save.files switch is TRUE. 
 # The data extraction is best with "v3", which is the most up-to-date data extraction
-# version.
+# version. The data extraction is best with "v3", which is the most up-to-date 
+# data extraction. This is now assumed and other extraction methods (v1)
+#  are not possible. 
+
 # 
 # To fit hierarchical models, use 'calf_production_hierarchical_stan.R'
+# 
+# To install cmdstanr, use the following code. It needs to be installed from the stan-development team:
+# install.packages("cmdstanr", repos = c('https://stan-dev.r-universe.dev', getOption("repos")))
+# Adding "dependencies = T" to the above install.packages command may be a good idea - although, it may not be necessary when using RStudio. 
 
 rm(list = ls())
 # Load required library
@@ -17,51 +24,39 @@ library(bayesplot)
 
 source("GrayWhaleCalfProduction_fcns_v2.R")
 
-save.files <- FALSE
+save.files <- TRUE #FALSE
 
-data.ext <- "v3" # "v2"  # or v2
+data.ext <- "v3" # this has to be v3
 #model <- "nb"
 model <- "nb_singleyear"
 run.date <- Sys.Date() # "2026-06-30"    #  Change this to use results from a previous run
 
-if (data.ext == "v1"){
-  data.path <- "data/Formatted Annual Data/"
-  FILES <- list.files(path = data.path, 
-                      pattern = "Formatted.csv")
+data.path <- paste0("data//Formatted Annual Data Combined ", data.ext, "//")
+FILES <- list.files(path = data.path,
+                    pattern = paste0(data.ext, ".csv"))
   
-} else {
-  data.path <- paste0("data/Formatted Annual Data Combined ", data.ext, "/")
-  FILES <- list.files(path = data.path,
-                      pattern = paste0(data.ext, ".csv"))
-  
-}
-
 # get data
 all.data <- count.obs <- effort <- week <- n.obs <- n.weeks <- list()
 years <- vector(mode = "numeric", length = length(FILES))
 
 for(i in 1:length(FILES)){
-  if (data.ext == "v1"){
-    years[i] <- as.numeric(str_split(FILES[i], " Formatted.csv")[[1]][1])
-  } else {
-    years[i] <- as.numeric(str_split(FILES[i], " Formatted_combined_v3.csv")[[1]][1]) 
-  }
+  years[i] <- as.numeric(str_split(FILES[i], " Formatted_combined_v3.csv")[[1]][1]) 
   
-    data <- read.csv(paste0(data.path, FILES[i]))
-    data$Effort[is.na(data$Effort)] <- 0
-    data$Effort[data$Effort > 3] <- 3
-    data$Sightings[data$Effort == 0] <- 0  # no effort, no sightings
-    
-    all.data[[i]] <- data.frame(count_obs = as.numeric(data$Sightings),
-                                effort_hours = data$Effort,
-                                week_num = data$Week,
-                                calendar_year = year(as.Date(data$Date)),
-                                iso_wk = isoweek(as.Date(data$Date)),
-                                Month = month(as.Date(data$Date)),
-                                Day = day(as.Date(data$Date)),
-                                wday = wday(as.Date(data$Date)),
-                                Date = as.Date(data$Date))
-    
+  data <- read.csv(paste0(data.path, FILES[i]))
+  data$Effort[is.na(data$Effort)] <- 0
+  data$Effort[data$Effort > 3] <- 3
+  data$Sightings[data$Effort == 0] <- 0  # no effort, no sightings
+  
+  all.data[[i]] <- data.frame(count_obs = as.numeric(data$Sightings),
+                              effort_hours = data$Effort,
+                              week_num = data$Week,
+                              calendar_year = year(as.Date(data$Date)),
+                              iso_wk = isoweek(as.Date(data$Date)),
+                              Month = month(as.Date(data$Date)),
+                              Day = day(as.Date(data$Date)),
+                              wday = wday(as.Date(data$Date)),
+                              Date = as.Date(data$Date))
+  
 }
 
 calf_data <- do.call("rbind", all.data) 
@@ -76,9 +71,9 @@ calf_data %>%
   ) %>%
   arrange(year_idx, week_num) -> prepped_data_clean
 
-    
+
 all.years <- unique(prepped_data_clean$calendar_year)
-model.file <- paste0("models/GWCalfCount_", model, ".stan")
+model.file <- paste0("models//GWCalfCount_", model, ".stan")
 stan.out <- PPC.out <- global_summary <- diag.summary <- list()
 for (y in 1:max(prepped_data_clean$year_idx)){
   out.file <- paste0("GWCalfCount_Stan_", model, "_", 
@@ -95,7 +90,7 @@ for (y in 1:max(prepped_data_clean$year_idx)){
     year_idx   = data.1year$year_idx,
     week_idx   = data.1year$week_num
   )
-  if (!file.exists(paste0("Rdata/", out.file, ".rds"))){
+  if (!file.exists(paste0("RData//", out.file, ".rds"))){
     # 1. Compile and Fit the Negative Binomial Model
     # In your R script where you load your model, add force_recompile = TRUE just once:
     mod_ <- cmdstan_model(stan_file = model.file,
@@ -117,9 +112,9 @@ for (y in 1:max(prepped_data_clean$year_idx)){
     )
     toc <- Sys.time() -  tic
     
-    fit_$save_object(file = paste0("Rdata/", out.file, ".rds"))
+    fit_$save_object(file = paste0("RData//", out.file, ".rds"))
     
-    out.list <- list(out.filename = paste0("Rdata/", out.file, ".rds"),
+    out.list <- list(out.filename = paste0("RData//", out.file, ".rds"),
                      data.ext = data.ext, # "v2"  # or v2
                      data.path = data.path,
                      model = model.file,
@@ -130,11 +125,11 @@ for (y in 1:max(prepped_data_clean$year_idx)){
                      System = Sys.getenv())
     
     saveRDS(out.list, 
-            file = paste0("Rdata/", out.file, ".info"))
+            file = paste0("RData//", out.file, ".info"))
   } else {
     
-    fit_ <- readRDS(paste0("Rdata/", out.file, ".rds"))
-    out.list <- readRDS(paste0("Rdata/", out.file, ".info"))
+    fit_ <- readRDS(paste0("RData//", out.file, ".rds"))
+    out.list <- readRDS(paste0("RData//", out.file, ".info"))
   }  
   
   # 1. Extract the raw log-likelihood matrix [8000 iterations x 17008 columns]
@@ -181,7 +176,7 @@ all.estimates %>%
   rownames_to_column("Year") -> all.estimates 
 
 write.csv(all.estimates,
-          file = paste0("data/all_estimates_", model, ".csv"))
+          file = paste0("data//all_estimates_", model, ".csv"))
 
 nrows <- lapply(global_summary, FUN = nrow) %>%
   unlist() 
@@ -192,4 +187,4 @@ global.summary.df %>%
 
 if (save.files)
   write.csv(global.summary.df,
-            file = "data/global_summary_single_year.csv")
+            file = "data//global_summary_single_year.csv")
