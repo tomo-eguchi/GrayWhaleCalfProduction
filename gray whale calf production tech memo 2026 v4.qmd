@@ -1099,7 +1099,7 @@ knitr::include_graphics(paste0("figures//POI_NB_estimates.png"))
 
 ```
 
-Estimated abundance (median and 95% credible intervals) of migrating Eastern North Pacific gray whale mother--calf pairs at the Piedras Blancas Light Station from 1994 to 2026, using the Negative Binomial fixed-year (NB fixed year), the Negative Binomial single-year (NB single-year), and the Poisson-Binomial single-year (POI single-year) models. The upper credible limit for the 2026 estimate by the Poisson-Binomial model was truncated at 2500. The actual upper limit was 11,485. Years when the population was experiencing a UME are highlighted in yellow.
+Estimated abundance (median and 95% credible intervals) of migrating Eastern North Pacific gray whale mother--calf pairs at the Piedras Blancas Light Station from 1994 to 2026, using the Negative Binomial fixed-year (NB fixed-year), the Negative Binomial single-year (NB single-year), and the Poisson-Binomial single-year (POI single-year) models. The upper credible limit for the 2026 estimate by the Poisson-Binomial model was truncated at 2500. The actual upper limit was 11,485. Years when the population was experiencing a UME are highlighted in yellow.
 :::
 
 \newpage
